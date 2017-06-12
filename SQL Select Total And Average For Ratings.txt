@@ -1,0 +1,17 @@
+CREATE PROC [dbo].[Ratings_SelectTotalAndAvg]
+			 @EntityId NVARCHAR(100)
+			,@TypeId INT
+
+BEGIN
+
+;with RCounts as (    
+    SELECT COUNT(1)  as RCount
+		  ,ROUND(AVG(CAST(Rating AS FLOAT)), 2) as Avg
+    FROM [dbo].Ratings 
+    WHERE EntityID = @EntityId AND TypeID = @TypeId
+    Group by EntityID)
+
+    select *
+    From RCounts
+
+END
