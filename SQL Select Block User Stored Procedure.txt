@@ -1,0 +1,56 @@
+CREATE PROC [dbo].[AspNetUsers_SelectBlockedUsers_ByName]
+		   @SearchText NVARCHAR(65)
+		 , @LockoutEnabled BIT
+		 , @PageIndex INT
+		 , @PageSize INT
+
+AS
+
+
+BEGIN
+
+	DECLARE @SearchText2 nvarchar(65) = '%'+ @SearchText +'%'
+	DECLARE @Offset int = @PageIndex * @PageSize
+	DECLARE @SelectedUsers [dbo].[NVarCharIdPageTable]
+
+	INSERT INTO @SelectedUsers ([Data],[TotalCount])
+		SELECT	  U.[Id]
+				,[TotalCount] = COUNT(1)OVER()
+	FROM dbo.AspNetUsers AS U INNER JOIN dbo.Accounts AS A
+			ON A.CreatedBy = U.Id
+	WHERE (A.[FirstName] LIKE @SearchText2 OR A.[LastName] LIKE @SearchText2 OR U.[Email] LIKE @SearchText2 OR A.[Handle] LIKE @SearchText2) 
+			AND U.LockoutEnabled = @LockoutEnabled
+	ORDER BY A.[FirstName]
+		OFFSET @Offset ROWS
+	FETCH NEXT @PageSize ROWS ONLY
+
+	SELECT	 U.[Id]
+			,U.[Email]
+			,U.[UserName]
+			,A.[Handle]
+			,A.[FirstName]
+			,A.[LastName]
+			,A.[AvatarUrl]
+			,U.[LockoutEnabled]
+			,A.[AccountModifier]
+			,S.[TotalCount]
+	FROM dbo.AspNetUsers AS U INNER JOIN dbo.Accounts AS A
+			ON A.CreatedBy = U.Id
+			INNER JOIN @SelectedUsers AS S
+			ON S.Data = U.Id
+
+	SELECT	
+			 R.[Name]
+			,R.id
+			FROM dbo.AspNetRoles AS R
+
+	SELECT		
+			 [RoleId]	
+			,[UserId]
+
+	FROM dbo.AspNetUserRoles AS R
+	INNER JOIN @SelectedUsers AS S
+			ON S.Data = R.UserId
+		ORDER BY [UserId]
+
+END
